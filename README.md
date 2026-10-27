@@ -71,7 +71,7 @@ Kubernetes impose des noms de namespace en minuscules : le namespace demandé «
 ```bash
 helm install travelo ./helm/travelo --namespace helm --create-namespace
 # depuis le dépôt publié (GitHub Pages servant le dossier docs/) :
-helm repo add travelo https://<utilisateur-github>.github.io/travelo-k8s/
+helm repo add travelo https://medmehdiboukallouch-droid.github.io/travelo-k8s/
 helm install travelo travelo/travelo -n helm --create-namespace
 ```
 
