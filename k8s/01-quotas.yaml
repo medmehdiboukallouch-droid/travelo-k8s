@@ -1,0 +1,47 @@
+# ---------------------------------------------------------------
+# ResourceQuota : plafond global CPU / mémoire du namespace travelo
+# ---------------------------------------------------------------
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: travelo-quota
+  namespace: travelo
+spec:
+  hard:
+    requests.cpu: "3"
+    requests.memory: 4Gi
+    limits.cpu: "8"
+    limits.memory: 8Gi
+    pods: "20"
+    persistentvolumeclaims: "4"
+    requests.storage: 10Gi
+---
+# ---------------------------------------------------------------
+# LimitRange : quota CPU / mémoire appliqué à CHAQUE Pod / conteneur
+#  - valeurs par défaut injectées si un conteneur n'en déclare pas
+#  - bornes min / max par conteneur et par Pod
+# ---------------------------------------------------------------
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: travelo-limits
+  namespace: travelo
+spec:
+  limits:
+    - type: Pod
+      max:
+        cpu: "1500m"
+        memory: 1536Mi
+    - type: Container
+      default:            # limite par défaut
+        cpu: 250m
+        memory: 256Mi
+      defaultRequest:     # request par défaut
+        cpu: 50m
+        memory: 64Mi
+      min:
+        cpu: 10m
+        memory: 16Mi
+      max:
+        cpu: "1"
+        memory: 1Gi

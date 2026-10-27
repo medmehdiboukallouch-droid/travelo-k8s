@@ -1,0 +1,104 @@
+{{- $fn := include "travelo.fullname" . -}}
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fn }}
+  labels: {{- include "travelo.labels" . | nindent 4 }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $fn }}-backend
+                port: { number: {{ .Values.backend.port }} }
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $fn }}-frontend
+                port: { number: 80 }
+{{- end }}
+{{- if .Values.pdb.enabled }}
+{{- range $c := list "frontend" "backend" }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ $fn }}-{{ $c }}
+  labels: {{- include "travelo.labels" $ | nindent 4 }}
+spec:
+  minAvailable: {{ $.Values.pdb.minAvailable }}
+  selector:
+    matchLabels: {{- include "travelo.selector" (list $ $c) | nindent 6 }}
+{{- end }}
+{{- end }}
+{{- if .Values.quota.enabled }}
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: {{ $fn }}-quota
+  labels: {{- include "travelo.labels" . | nindent 4 }}
+spec:
+  hard:
+    requests.cpu: {{ .Values.quota.requestsCpu | quote }}
+    requests.memory: {{ .Values.quota.requestsMemory }}
+    limits.cpu: {{ .Values.quota.limitsCpu | quote }}
+    limits.memory: {{ .Values.quota.limitsMemory }}
+    pods: {{ .Values.quota.pods | quote }}
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: {{ $fn }}-limits
+  labels: {{- include "travelo.labels" . | nindent 4 }}
+spec:
+  limits:
+    - type: Pod
+      max: { cpu: 1500m, memory: 1536Mi }
+    - type: Container
+      default: { cpu: 250m, memory: 256Mi }
+      defaultRequest: { cpu: 50m, memory: 64Mi }
+      max: { cpu: "1", memory: 1Gi }
+{{- end }}
+{{- if .Values.rbac.enabled }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $fn }}-dev
+  labels: {{- include "travelo.labels" . | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $fn }}-developer
+  labels: {{- include "travelo.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["", "apps", "networking.k8s.io", "policy"]
+    resources: ["pods", "pods/log", "services", "configmaps", "events", "deployments", "statefulsets", "replicasets", "ingresses", "poddisruptionbudgets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments/scale"]
+    verbs: ["get", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $fn }}-developer
+  labels: {{- include "travelo.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $fn }}-dev
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: Role
+  name: {{ $fn }}-developer
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

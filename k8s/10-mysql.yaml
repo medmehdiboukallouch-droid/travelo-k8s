@@ -1,0 +1,112 @@
+# ---------------------------------------------------------------
+# Service "headless" : donne une identité DNS stable au Pod MySQL
+#   travelo-mysql-0.travelo-mysql.travelo.svc.cluster.local
+# ---------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: travelo-mysql
+  namespace: travelo
+  labels:
+    app: travelo-mysql
+    app.kubernetes.io/part-of: travelo
+spec:
+  clusterIP: None
+  selector:
+    app: travelo-mysql
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: 3306
+---
+# ---------------------------------------------------------------
+# StatefulSet MySQL : stockage persistant via volumeClaimTemplates
+# ---------------------------------------------------------------
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: travelo-mysql
+  namespace: travelo
+  labels:
+    app: travelo-mysql
+    tier: database
+    app.kubernetes.io/part-of: travelo
+spec:
+  serviceName: travelo-mysql
+  replicas: 1
+  selector:
+    matchLabels:
+      app: travelo-mysql
+  template:
+    metadata:
+      labels:
+        app: travelo-mysql
+        tier: database
+        app.kubernetes.io/part-of: travelo
+    spec:
+      serviceAccountName: travelo-app
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: mysql
+          image: mysql:8.4
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: mysql
+              containerPort: 3306
+          env:
+            - name: MYSQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: travelo-mysql-config
+                  key: MYSQL_DATABASE
+          envFrom:
+            - secretRef:
+                name: travelo-db-secret
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          # Startup : laisse jusqu'à 5 min à MySQL pour initialiser le volume
+          startupProbe:
+            exec:
+              command: ["sh", "-c", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$MYSQL_ROOT_PASSWORD\" --silent"]
+            periodSeconds: 10
+            failureThreshold: 30
+          # Readiness : le Pod ne reçoit du trafic que si MySQL répond aux requêtes
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "mysql -h 127.0.0.1 -uroot -p\"$MYSQL_ROOT_PASSWORD\" -e 'SELECT 1'"]
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          # Liveness : redémarre le conteneur si le serveur ne répond plus
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$MYSQL_ROOT_PASSWORD\" --silent"]
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: mysql-data
+              mountPath: /var/lib/mysql
+            - name: mysql-init
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+      volumes:
+        - name: mysql-init
+          configMap:
+            name: travelo-mysql-config
+            items:
+              - key: 01-schema-seed.sql
+                path: 01-schema-seed.sql
+  volumeClaimTemplates:
+    - metadata:
+        name: mysql-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 2Gi

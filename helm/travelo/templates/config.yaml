@@ -1,0 +1,34 @@
+{{- $fn := include "travelo.fullname" . -}}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $fn }}-db
+  labels: {{- include "travelo.labels" . | nindent 4 }}
+type: Opaque
+stringData:
+  MYSQL_ROOT_PASSWORD: {{ .Values.mysql.rootPassword | quote }}
+  MYSQL_USER: {{ .Values.mysql.user | quote }}
+  MYSQL_PASSWORD: {{ .Values.mysql.password | quote }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $fn }}-backend
+  labels: {{- include "travelo.labels" . | nindent 4 }}
+data:
+  SPRING_DATASOURCE_URL: {{ printf "jdbc:mysql://%s-mysql:3306/%s?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC" $fn .Values.mysql.database | quote }}
+  {{- range $k, $v := .Values.backend.extraEnv }}
+  {{ $k }}: {{ $v | quote }}
+  {{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $fn }}-mysql
+  labels: {{- include "travelo.labels" . | nindent 4 }}
+data:
+  MYSQL_DATABASE: {{ .Values.mysql.database | quote }}
+  {{- if .Values.mysql.seedData }}
+  01-schema-seed.sql: |
+{{ .Files.Get "files/schema-seed.sql" | indent 4 }}
+  {{- end }}

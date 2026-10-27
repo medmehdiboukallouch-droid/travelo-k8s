@@ -1,0 +1,93 @@
+{{- $fn := include "travelo.fullname" . -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fn }}-mysql
+  labels: {{- include "travelo.labels" . | nindent 4 }}
+spec:
+  clusterIP: None
+  selector: {{- include "travelo.selector" (list . "database") | nindent 4 }}
+  ports:
+    - name: mysql
+      port: 3306
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $fn }}-mysql
+  labels:
+    {{- include "travelo.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+spec:
+  serviceName: {{ $fn }}-mysql
+  replicas: 1
+  selector:
+    matchLabels: {{- include "travelo.selector" (list . "database") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "travelo.labels" . | nindent 8 }}
+        app.kubernetes.io/component: database
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/config.yaml") . | sha256sum }}
+    spec:
+      containers:
+        - name: mysql
+          image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
+          imagePullPolicy: {{ .Values.mysql.image.pullPolicy }}
+          ports:
+            - name: mysql
+              containerPort: 3306
+          env:
+            - name: MYSQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $fn }}-mysql
+                  key: MYSQL_DATABASE
+          envFrom:
+            - secretRef:
+                name: {{ $fn }}-db
+          resources: {{- toYaml .Values.mysql.resources | nindent 12 }}
+          startupProbe:
+            exec:
+              command: ["sh", "-c", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$MYSQL_ROOT_PASSWORD\" --silent"]
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "mysql -h 127.0.0.1 -uroot -p\"$MYSQL_ROOT_PASSWORD\" -e 'SELECT 1'"]
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$MYSQL_ROOT_PASSWORD\" --silent"]
+            periodSeconds: 20
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+            {{- if .Values.mysql.seedData }}
+            - name: init
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+            {{- end }}
+      volumes:
+        {{- if .Values.mysql.seedData }}
+        - name: init
+          configMap:
+            name: {{ $fn }}-mysql
+            items:
+              - key: 01-schema-seed.sql
+                path: 01-schema-seed.sql
+        {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        {{- if .Values.mysql.storageClass }}
+        storageClassName: {{ .Values.mysql.storageClass }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.mysql.storage }}

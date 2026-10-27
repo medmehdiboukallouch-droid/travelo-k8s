@@ -1,0 +1,37 @@
+# Bonus B - Skaffold : boucle de développement continue
+#   skaffold dev  -> surveille les sources, reconstruit les images modifiées,
+#                    les charge dans Minikube et redéploie les manifests k8s/
+#   skaffold run  -> build + déploiement unique
+apiVersion: skaffold/v4beta14
+kind: Config
+metadata:
+  name: travelo
+build:
+  tagPolicy:
+    gitCommit:
+      variant: AbbrevCommitSha
+  local:
+    push: false          # images construites localement, jamais poussées
+  artifacts:
+    - image: mehdiboukallouch/travelo-backend
+      context: ../travelo-app/travelo_backend
+      custom:
+        buildCommand: powershell -NoProfile -ExecutionPolicy Bypass -File ../../travelo-k8s/scripts/build-image.ps1
+        dependencies:
+          dockerfile:
+            path: Dockerfile
+    - image: mehdiboukallouch/travelo-frontend
+      context: ../travelo-app/travelo_frontend
+      custom:
+        buildCommand: powershell -NoProfile -ExecutionPolicy Bypass -File ../../travelo-k8s/scripts/build-image.ps1
+        dependencies:
+          dockerfile:
+            path: Dockerfile
+manifests:
+  kustomize:
+    paths:
+      - k8s
+deploy:
+  kubeContext: travelo-dev   # alias du cluster minikube (voir README)
+  kubectl: {}
+  statusCheckDeadlineSeconds: 300

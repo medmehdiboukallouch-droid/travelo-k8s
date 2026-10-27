@@ -1,0 +1,22 @@
+apiVersion: v1
+entries:
+  travelo:
+  - apiVersion: v2
+    appVersion: "2.0"
+    created: "2026-10-27T11:29:49.5879772Z"
+    description: Application de réservation de vols Travelo (React + Spring Boot +
+      MySQL) - chart écrit from scratch
+    digest: 811528036af6b16fae298d74b55a1e7367a9a38fc68132c35cf7edeb3061c1ca
+    keywords:
+    - travelo
+    - spring-boot
+    - react
+    - mysql
+    maintainers:
+    - name: Mehdi Boukallouch
+    name: travelo
+    type: application
+    urls:
+    - travelo-0.1.0.tgz
+    version: 0.1.0
+generated: "2026-10-27T11:29:49.5844999Z"

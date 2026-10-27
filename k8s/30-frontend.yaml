@@ -1,0 +1,82 @@
+# ---------------------------------------------------------------
+# Frontend React servi par Nginx (non root, port 3000) : 2 réplicas
+# ---------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: travelo-frontend
+  namespace: travelo
+  labels:
+    app: travelo-frontend
+    tier: frontend
+    app.kubernetes.io/part-of: travelo
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: travelo-frontend
+  template:
+    metadata:
+      labels:
+        app: travelo-frontend
+        tier: frontend
+        app.kubernetes.io/part-of: travelo
+    spec:
+      serviceAccountName: travelo-app
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+      containers:
+        - name: frontend
+          image: mehdiboukallouch/travelo-frontend:2.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          startupProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 2
+            failureThreshold: 15
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 15
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: travelo-frontend
+  namespace: travelo
+  labels:
+    app: travelo-frontend
+    app.kubernetes.io/part-of: travelo
+spec:
+  type: ClusterIP
+  selector:
+    app: travelo-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

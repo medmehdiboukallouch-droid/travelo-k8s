@@ -1,0 +1,111 @@
+# ---------------------------------------------------------------
+# Backend Spring Boot : 2 réplicas
+# ---------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: travelo-backend
+  namespace: travelo
+  labels:
+    app: travelo-backend
+    tier: backend
+    app.kubernetes.io/part-of: travelo
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: travelo-backend
+  template:
+    metadata:
+      labels:
+        app: travelo-backend
+        tier: backend
+        app.kubernetes.io/part-of: travelo
+    spec:
+      serviceAccountName: travelo-app
+      # Attend que MySQL accepte les connexions avant de lancer Spring Boot
+      initContainers:
+        - name: wait-for-mysql
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z travelo-mysql 3306; do echo 'attente MySQL...'; sleep 3; done"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+      containers:
+        - name: backend
+          image: mehdiboukallouch/travelo-backend:2.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: travelo-backend-config
+          env:
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: travelo-db-secret
+                  key: MYSQL_USER
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: travelo-db-secret
+                  key: MYSQL_PASSWORD
+          resources:
+            requests:
+              cpu: 250m
+              memory: 384Mi
+            limits:
+              cpu: "1"
+              memory: 768Mi
+          # Startup : Spring Boot dispose de 30 x 5 s = 150 s pour démarrer
+          startupProbe:
+            httpGet:
+              path: /api/hello
+              port: http
+            periodSeconds: 5
+            failureThreshold: 30
+          # Readiness : retire le Pod du Service s'il ne répond plus
+          readinessProbe:
+            httpGet:
+              path: /api/hello
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          # Liveness : redémarre le conteneur s'il est bloqué
+          livenessProbe:
+            httpGet:
+              path: /api/hello
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: travelo-backend
+  namespace: travelo
+  labels:
+    app: travelo-backend
+    app.kubernetes.io/part-of: travelo
+spec:
+  type: ClusterIP
+  selector:
+    app: travelo-backend
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

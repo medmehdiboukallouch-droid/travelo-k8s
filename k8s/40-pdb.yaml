@@ -1,0 +1,38 @@
+# ---------------------------------------------------------------
+# PodDisruptionBudgets : lors d'une perturbation volontaire
+# (drain d'un nœud, mise à jour du cluster...), au moins 1 Pod
+# frontend et 1 Pod backend doivent rester disponibles.
+# ---------------------------------------------------------------
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: travelo-frontend-pdb
+  namespace: travelo
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: travelo-frontend
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: travelo-backend-pdb
+  namespace: travelo
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: travelo-backend
+---
+# Base de données (1 seul réplica) : aucune éviction volontaire
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: travelo-mysql-pdb
+  namespace: travelo
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: travelo-mysql

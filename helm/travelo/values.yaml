@@ -1,0 +1,63 @@
+# Valeurs par défaut du chart Travelo (surchargeables avec --set ou -f)
+
+frontend:
+  image:
+    repository: mehdiboukallouch/travelo-frontend
+    tag: "2.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  port: 3000
+  resources:
+    requests: { cpu: 50m, memory: 32Mi }
+    limits:   { cpu: 200m, memory: 128Mi }
+
+backend:
+  image:
+    repository: mehdiboukallouch/travelo-backend
+    tag: "2.0"
+    pullPolicy: IfNotPresent
+  replicas: 2
+  port: 8080
+  healthPath: /api/hello
+  resources:
+    requests: { cpu: 250m, memory: 384Mi }
+    limits:   { cpu: "1", memory: 768Mi }
+  extraEnv:
+    SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
+    SPRING_JPA_SHOW_SQL: "false"
+
+mysql:
+  image:
+    repository: mysql
+    tag: "8.4"
+    pullPolicy: IfNotPresent
+  database: travelo_db
+  rootPassword: "Root-Travelo-2026"
+  user: travelo
+  password: "App-Travelo-2026"
+  storage: 2Gi
+  storageClass: ""          # vide = StorageClass par défaut du cluster
+  seedData: true            # charge le jeu de vols de démonstration
+  resources:
+    requests: { cpu: 250m, memory: 512Mi }
+    limits:   { cpu: "1", memory: 1Gi }
+
+ingress:
+  enabled: true
+  className: nginx
+  host: helm.travelo.local
+
+pdb:
+  enabled: true
+  minAvailable: 1
+
+quota:
+  enabled: true
+  requestsCpu: "3"
+  requestsMemory: 4Gi
+  limitsCpu: "8"
+  limitsMemory: 8Gi
+  pods: "20"
+
+rbac:
+  enabled: true

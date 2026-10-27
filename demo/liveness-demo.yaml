@@ -1,0 +1,25 @@
+# Démonstration de la Liveness Probe (hors application) :
+# le conteneur supprime /tmp/healthy après 30 s -> la sonde échoue
+# -> le kubelet tue et redémarre le conteneur (RESTARTS augmente).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: liveness-demo
+  namespace: travelo
+  labels:
+    demo: liveness
+spec:
+  terminationGracePeriodSeconds: 5
+  containers:
+    - name: demo
+      image: busybox:1.36
+      command: ["sh", "-c", "touch /tmp/healthy; sleep 30; rm -f /tmp/healthy; sleep 600"]
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits:   { cpu: 50m, memory: 32Mi }
+      livenessProbe:
+        exec:
+          command: ["cat", "/tmp/healthy"]
+        initialDelaySeconds: 5
+        periodSeconds: 5
+        failureThreshold: 3

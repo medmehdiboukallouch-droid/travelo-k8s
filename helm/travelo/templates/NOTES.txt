@@ -1,0 +1,9 @@
+Travelo {{ .Chart.AppVersion }} déployé dans le namespace {{ .Release.Namespace }}.
+
+Suivre le démarrage :
+  kubectl get pods -n {{ .Release.Namespace }} -w
+{{- if .Values.ingress.enabled }}
+
+Accès navigateur (minikube tunnel actif + "127.0.0.1 {{ .Values.ingress.host }}" dans le fichier hosts) :
+  http://{{ .Values.ingress.host }}/
+{{- end }}

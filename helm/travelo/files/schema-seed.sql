@@ -1,0 +1,67 @@
+-- Tables identiques à celles générées par Hibernate (ddl-auto=update)
+CREATE TABLE IF NOT EXISTS flight (
+  id_flight         INT NOT NULL AUTO_INCREMENT,
+  departure_city    VARCHAR(255),
+  departure_airport VARCHAR(255),
+  arrival_city      VARCHAR(255),
+  arrival_airport   VARCHAR(255),
+  date              DATETIME(6),
+  departure_time    TIME(6),
+  arrival_time      TIME(6),
+  company           VARCHAR(255),
+  price             DECIMAL(38,2),
+  PRIMARY KEY (id_flight)
+);
+
+CREATE TABLE IF NOT EXISTS seats (
+  id INT NOT NULL, id_flight INT,
+  a1 VARCHAR(255), b1 VARCHAR(255), c1 VARCHAR(255), d1 VARCHAR(255),
+  a2 VARCHAR(255), b2 VARCHAR(255), c2 VARCHAR(255), d2 VARCHAR(255),
+  a3 VARCHAR(255), b3 VARCHAR(255), c3 VARCHAR(255), d3 VARCHAR(255),
+  a4 VARCHAR(255), b4 VARCHAR(255), c4 VARCHAR(255), d4 VARCHAR(255),
+  a5 VARCHAR(255), b5 VARCHAR(255), c5 VARCHAR(255), d5 VARCHAR(255),
+  a6 VARCHAR(255), b6 VARCHAR(255), c6 VARCHAR(255), d6 VARCHAR(255),
+  a7 VARCHAR(255), b7 VARCHAR(255), c7 VARCHAR(255), d7 VARCHAR(255),
+  a8 VARCHAR(255), b8 VARCHAR(255), c8 VARCHAR(255), d8 VARCHAR(255),
+  a9 VARCHAR(255), b9 VARCHAR(255), c9 VARCHAR(255), d9 VARCHAR(255),
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_seats_flight (id_flight),
+  CONSTRAINT fk_seats_flight FOREIGN KEY (id_flight) REFERENCES flight (id_flight)
+);
+
+-- Routes desservies (aller et retour)
+CREATE TEMPORARY TABLE route (
+  dep_city VARCHAR(50), dep_ap VARCHAR(10), arr_city VARCHAR(50), arr_ap VARCHAR(10),
+  dep TIME, arr TIME, company VARCHAR(50), price DECIMAL(10,2)
+);
+INSERT INTO route VALUES
+  ('Casablanca','CMN','Paris','CDG',  '08:15','12:20','Royal Air Maroc', 2150.00),
+  ('Casablanca','CMN','Paris','ORY',  '17:40','21:45','Air France',      2480.00),
+  ('Paris','CDG','Casablanca','CMN',  '10:05','12:15','Royal Air Maroc', 2090.00),
+  ('Paris','ORY','Casablanca','CMN',  '19:30','21:40','Transavia',       1690.00),
+  ('Rabat','RBA','Madrid','MAD',      '09:00','11:10','Iberia',          1450.00),
+  ('Madrid','MAD','Rabat','RBA',      '14:20','14:35','Iberia',          1390.00),
+  ('Marrakech','RAK','London','LGW',  '07:30','11:05','easyJet',         1290.00),
+  ('London','LGW','Marrakech','RAK',  '12:10','15:40','easyJet',         1320.00),
+  ('Tanger','TNG','Barcelona','BCN',  '13:45','16:30','Vueling',          990.00),
+  ('Barcelona','BCN','Tanger','TNG',  '17:15','18:10','Vueling',          950.00);
+
+-- Un vol par route et par jour, du 27/10/2026 au 31/12/2026
+INSERT INTO flight (departure_city, departure_airport, arrival_city, arrival_airport,
+                    date, departure_time, arrival_time, company, price)
+WITH RECURSIVE days(d) AS (
+  SELECT DATE('2026-10-27') UNION ALL SELECT d + INTERVAL 1 DAY FROM days WHERE d < '2026-12-31'
+)
+SELECT r.dep_city, r.dep_ap, r.arr_city, r.arr_ap, days.d, r.dep, r.arr, r.company, r.price
+FROM days CROSS JOIN route r
+ORDER BY days.d, r.dep;
+
+-- Plan de cabine : 36 sièges par vol, quelques-uns déjà réservés
+INSERT INTO seats
+SELECT id_flight, id_flight,
+  'empty','taken','empty','empty',  'empty','empty','empty','taken',
+  'taken','empty','empty','empty',  'empty','empty','taken','empty',
+  'empty','empty','empty','empty',  'empty','taken','empty','empty',
+  'empty','empty','empty','taken',  'empty','empty','empty','empty',
+  'taken','empty','empty','empty'
+FROM flight;

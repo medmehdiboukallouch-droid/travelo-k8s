@@ -1,0 +1,59 @@
+# ---------------------------------------------------------------
+# Bonus A - Base de données gérée par un Operator (MySQL Operator d'Oracle)
+#
+# Prérequis (installation de l'opérateur et de ses CRDs) :
+#   helm repo add mysql-operator https://mysql.github.io/mysql-operator/
+#   helm install mysql-operator mysql-operator/mysql-operator -n mysql-operator --create-namespace
+#
+# On ne décrit plus un StatefulSet à la main : on déclare une ressource
+# InnoDBCluster et l'opérateur crée et pilote lui-même
+#   - 3 instances MySQL en Group Replication (1 primaire + 2 secondaires)
+#   - 1 MySQL Router qui envoie les écritures vers le primaire
+#   - les Services, PVC, comptes et la bascule automatique (failover)
+# ---------------------------------------------------------------
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: travelo-db
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: travelo-db-cluster-secret
+  namespace: travelo-db
+type: Opaque
+stringData:
+  rootUser: root
+  rootHost: "%"
+  rootPassword: "Root-Travelo-2026"
+---
+apiVersion: mysql.oracle.com/v2
+kind: InnoDBCluster
+metadata:
+  name: travelo-db
+  namespace: travelo-db
+spec:
+  secretName: travelo-db-cluster-secret
+  tlsUseSelfSigned: true
+  instances: 3
+  router:
+    instances: 1
+  datadirVolumeClaimTemplate:
+    accessModes: ["ReadWriteOnce"]
+    resources:
+      requests:
+        storage: 2Gi
+  mycnf: |
+    [mysqld]
+    innodb_buffer_pool_size=128M
+    max_connections=100
+  podSpec:
+    containers:
+      - name: mysql
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: "1"
+            memory: 1Gi

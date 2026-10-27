@@ -1,0 +1,60 @@
+# ---------------------------------------------------------------
+# ServiceAccount utilisé par les Pods de l'application
+# (aucun accès à l'API Kubernetes : token non monté)
+# ---------------------------------------------------------------
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: travelo-app
+  namespace: travelo
+automountServiceAccountToken: false
+---
+# ServiceAccount d'un développeur / opérateur de l'équipe NeoTech
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: travelo-dev
+  namespace: travelo
+---
+# ---------------------------------------------------------------
+# Role : lecture des ressources du namespace + mise à l'échelle
+# des Deployments. Pas d'accès aux Secrets, pas de suppression.
+# ---------------------------------------------------------------
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: travelo-developer
+  namespace: travelo
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "services", "endpoints", "configmaps", "events", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments/scale"]
+    verbs: ["get", "update", "patch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["policy"]
+    resources: ["poddisruptionbudgets"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: travelo-developer-binding
+  namespace: travelo
+subjects:
+  - kind: ServiceAccount
+    name: travelo-dev
+    namespace: travelo
+  - kind: User                 # utilisateur humain (certificat CN=mehdi)
+    name: mehdi
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: travelo-developer
+  apiGroup: rbac.authorization.k8s.io

@@ -1,0 +1,7 @@
+# Namespace dédié à l'application Travelo
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: travelo
+  labels:
+    app.kubernetes.io/part-of: travelo
