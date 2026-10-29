@@ -37,9 +37,9 @@ operator/               bonus A : cluster InnoDB (Operator) et bascule de Travel
 minikube start --driver=docker --cpus=6 --memory=8192 --addons=ingress,metrics-server
 
 # Images (construites localement puis chargées dans le cluster)
-docker build -t mehdiboukallouch/travelo-backend:2.0  ../travelo-app/travelo_backend
-docker build -t mehdiboukallouch/travelo-frontend:2.0 ../travelo-app/travelo_frontend
-minikube image load mehdiboukallouch/travelo-backend:2.0 mehdiboukallouch/travelo-frontend:2.0
+docker build -t mehdiboukallouch/travelo-backend:2.1  ../travelo-app/travelo_backend
+docker build -t mehdiboukallouch/travelo-frontend:2.1 ../travelo-app/travelo_frontend
+minikube image load mehdiboukallouch/travelo-backend:2.1 mehdiboukallouch/travelo-frontend:2.1
 
 kubectl apply -k k8s/
 kubectl get all -n travelo
