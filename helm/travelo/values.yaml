@@ -3,7 +3,7 @@
 frontend:
   image:
     repository: mehdiboukallouch/travelo-frontend
-    tag: "2.0"
+    tag: "2.1"
     pullPolicy: IfNotPresent
   replicas: 2
   port: 3000
@@ -14,7 +14,7 @@ frontend:
 backend:
   image:
     repository: mehdiboukallouch/travelo-backend
-    tag: "2.0"
+    tag: "2.1"
     pullPolicy: IfNotPresent
   replicas: 2
   port: 8080

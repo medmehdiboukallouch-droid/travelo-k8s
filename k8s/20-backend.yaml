@@ -12,7 +12,7 @@ metadata:
     app.kubernetes.io/part-of: travelo
 spec:
   replicas: 2
-  revisionHistoryLimit: 5
+  revisionHistoryLimit: 3
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -29,11 +29,15 @@ spec:
         app.kubernetes.io/part-of: travelo
     spec:
       serviceAccountName: travelo-app
-      # Attend que MySQL accepte les connexions avant de lancer Spring Boot
+      # Attend que MySQL (DB_HOST:DB_PORT du ConfigMap) accepte les connexions
+      # avant de lancer Spring Boot
       initContainers:
         - name: wait-for-mysql
           image: busybox:1.36
-          command: ["sh", "-c", "until nc -z travelo-mysql 3306; do echo 'attente MySQL...'; sleep 3; done"]
+          command: ["sh", "-c", "until nc -z $DB_HOST $DB_PORT; do echo \"attente MySQL $DB_HOST:$DB_PORT...\"; sleep 3; done"]
+          envFrom:
+            - configMapRef:
+                name: travelo-backend-config
           resources:
             requests:
               cpu: 10m
@@ -43,7 +47,7 @@ spec:
               memory: 32Mi
       containers:
         - name: backend
-          image: mehdiboukallouch/travelo-backend:2.0
+          image: mehdiboukallouch/travelo-backend:2.1
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

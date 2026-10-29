@@ -1,0 +1,16 @@
+# Bonus A : le backend Travelo utilise le cluster InnoDB (via le MySQL Router)
+# au lieu du StatefulSet travelo-mysql. Port 6446 = lecture/écriture (primaire).
+# Retour au StatefulSet : kubectl apply -f k8s/03-configmap.yaml
+#                         kubectl rollout restart deployment travelo-backend -n travelo
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: travelo-backend-config
+  namespace: travelo
+data:
+  DB_HOST: "travelo-db.travelo-db.svc.cluster.local"
+  DB_PORT: "6446"
+  SPRING_DATASOURCE_URL: "jdbc:mysql://travelo-db.travelo-db.svc.cluster.local:6446/travelo_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+  SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
+  SPRING_JPA_SHOW_SQL: "false"
+  LOGGING_LEVEL_ORG_HIBERNATE_TOOL_SCHEMA: "INFO"

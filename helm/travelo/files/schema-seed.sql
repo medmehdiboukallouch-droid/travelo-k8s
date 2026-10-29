@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS seats (
 -- Routes desservies (aller et retour)
 CREATE TEMPORARY TABLE route (
   dep_city VARCHAR(50), dep_ap VARCHAR(10), arr_city VARCHAR(50), arr_ap VARCHAR(10),
-  dep TIME, arr TIME, company VARCHAR(50), price DECIMAL(10,2)
+  dep TIME, arr TIME, company VARCHAR(50), price DECIMAL(10,2),
+      PRIMARY KEY (dep_city, dep_ap, arr_city, arr_ap, dep)
 );
 INSERT INTO route VALUES
   ('Casablanca','CMN','Paris','CDG',  '08:15','12:20','Royal Air Maroc', 2150.00),

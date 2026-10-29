@@ -12,7 +12,7 @@ metadata:
     app.kubernetes.io/part-of: travelo
 spec:
   replicas: 2
-  revisionHistoryLimit: 5
+  revisionHistoryLimit: 3
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -34,7 +34,7 @@ spec:
         runAsUser: 101
       containers:
         - name: frontend
-          image: mehdiboukallouch/travelo-frontend:2.0
+          image: mehdiboukallouch/travelo-frontend:2.1
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

@@ -8,6 +8,8 @@ metadata:
   name: travelo-backend-config
   namespace: travelo
 data:
+  DB_HOST: "travelo-mysql"
+  DB_PORT: "3306"
   SPRING_DATASOURCE_URL: "jdbc:mysql://travelo-mysql:3306/travelo_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
   SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
   SPRING_JPA_SHOW_SQL: "false"
@@ -59,7 +61,8 @@ data:
     -- Routes desservies (aller et retour)
     CREATE TEMPORARY TABLE route (
       dep_city VARCHAR(50), dep_ap VARCHAR(10), arr_city VARCHAR(50), arr_ap VARCHAR(10),
-      dep TIME, arr TIME, company VARCHAR(50), price DECIMAL(10,2)
+      dep TIME, arr TIME, company VARCHAR(50), price DECIMAL(10,2),
+      PRIMARY KEY (dep_city, dep_ap, arr_city, arr_ap, dep)
     );
     INSERT INTO route VALUES
       ('Casablanca','CMN','Paris','CDG',  '08:15','12:20','Royal Air Maroc', 2150.00),

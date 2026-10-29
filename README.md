@@ -18,12 +18,12 @@ k8s/                  manifests de l'application (namespace travelo)
   40-pdb.yaml           PodDisruptionBudgets
   50-ingress.yaml       Ingress travelo.local (/ -> frontend, /api -> backend)
   kustomization.yaml    kubectl apply -k k8s/
-demo/liveness-demo.yaml démonstration d'une liveness probe en échec
+demo/                   démonstrations : liveness probe en échec, Pod refusé par le LimitRange
 skaffold.yaml           bonus B : build + déploiement continu
 scripts/build-image.ps1 builder Skaffold (docker build + minikube image load)
 helm/travelo/           bonus C : chart Helm écrit from scratch
 docs/                   dépôt Helm publié (index.yaml + archive du chart)
-operator/               bonus A : cluster MySQL InnoDB géré par le MySQL Operator
+operator/               bonus A : cluster InnoDB (Operator) et bascule de Travelo dessus
 ```
 
 ## Prérequis
@@ -71,7 +71,7 @@ Kubernetes impose des noms de namespace en minuscules : le namespace demandé «
 ```bash
 helm install travelo ./helm/travelo --namespace helm --create-namespace
 # depuis le dépôt publié (GitHub Pages servant le dossier docs/) :
-helm repo add travelo https://medmehdiboukallouch-droid.github.io/-travelo-k8s/
+helm repo add travelo https://medmehdiboukallouch-droid.github.io/travelo-k8s/
 helm install travelo travelo/travelo -n helm --create-namespace
 ```
 
@@ -82,4 +82,17 @@ helm repo add mysql-operator https://mysql.github.io/mysql-operator/
 helm install mysql-operator mysql-operator/mysql-operator -n mysql-operator --create-namespace
 kubectl apply -f operator/innodbcluster.yaml
 kubectl get innodbcluster -n travelo-db
+```
+
+Brancher Travelo sur le cluster InnoDB (via le MySQL Router) :
+
+```bash
+# base, utilisateur applicatif et jeu de données, exécutés sur le primaire via le Router
+kubectl exec -i -n travelo-db travelo-db-0 -c mysql -- mysql -h travelo-db -P 6446 -uroot -p<root> < operator/init-travelo.sql
+kubectl exec -i -n travelo-db travelo-db-0 -c mysql -- mysql -h travelo-db -P 6446 -utravelo -p<app> travelo_db < helm/travelo/files/schema-seed.sql
+# le backend pointe vers le Router (port 6446 = lecture/écriture)
+kubectl apply -f operator/backend-config-innodb.yaml
+kubectl rollout restart deployment travelo-backend -n travelo
+# l'ancien StatefulSet n'est plus utilisé
+kubectl delete statefulset,service travelo-mysql -n travelo
 ```

@@ -2,8 +2,8 @@ apiVersion: v2
 name: travelo
 description: Application de réservation de vols Travelo (React + Spring Boot + MySQL) - chart écrit from scratch
 type: application
-version: 0.1.0
-appVersion: "2.0"
+version: 0.2.0
+appVersion: "2.1"
 keywords:
   - travelo
   - spring-boot
